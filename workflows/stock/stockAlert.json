@@ -1,0 +1,262 @@
+{
+  "name": "LINE AI Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "73465629-6abf-4405-b07a-0fbda18921b7",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        32,
+        -144
+      ],
+      "id": "c2bed5df-6066-437f-bb98-1047f732202a",
+      "name": "Line BOT",
+      "webhookId": "73465629-6abf-4405-b07a-0fbda18921b7"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawText = $input.first().json.body.events[0].message.text;\n\n// 抓出「連續數字」\nconst match = rawText.match(/\\d+/);\n\n// 如果有找到數字 → 用數字\nconst stockCode = match ? match[0] : rawText;\n\nreturn {\n  \"sessionId\":\"ee30b75b22424f63b258662ecc77f276\",\n  replyToken: $input.first().json.body.events[0].replyToken,\n  stockCode: stockCode,\n  userId: $input.first().json.body.events[0].source.userId,\n  chatInput: $input.first().json.body.events[0].message.text\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -144
+      ],
+      "id": "07666635-017e-45bd-b731-d1d1184c0507",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "data_id",
+              "value": "={{ $json.stockCode }}"
+            },
+            {
+              "name": "start_date",
+              "value": "={{ $now.minus({ days: 30 }).toISODate() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        448,
+        -144
+      ],
+      "id": "0fc1e952-f2a9-4919-99b1-8b235e4249eb",
+      "name": "取得30天內所有資訊"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 取得 FinMind 回傳的資料陣列\nconst data = $json.data; \n\n// 1. 取得最新一筆資料\nconst latest = data[data.length - 1];\n\n// 2. 計算 5 日均線 (MA5) - 取最後 5 筆 close 相加除以 5\nconst last5 = data.slice(-5).map(i => i.close);\nconst ma5 = (last5.reduce((a, b) => a + b) / last5.length).toFixed(2);\n\n// 3. 計算 20 日均線 (MA20) - 取最後 20 筆 close 相加除以 5\nconst last20 = data.slice(-20).map(i => i.close);\nconst ma20 = (last20.reduce((a, b) => a + b) / last20.length).toFixed(2);\n\n// 4. 整理近 5 日價格趨勢給 AI 參考\nconst priceSummary = last5.join(' -> ');\n\nreturn {\n  sessionId: $('Code in JavaScript').first().json.sessionId,\n  stockCode: latest.stock_id,\n  latestClose: latest.close,\n  ma5: ma5,\n  ma20: ma20,\n  changePercent: latest.spread, // FinMind 的 spread 通常是漲跌價差，若要百分比可自行換算\n  volume: latest.Trading_Volume,\n  priceSummary: priceSummary,\n  chatInput: $('Code in JavaScript').first().json.chatInput\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        -144
+      ],
+      "id": "1ae1d0c4-475c-45dd-946f-31fec5e7fab8",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=你是一位資深的台股投資顧問，請根據以下數據撰寫簡潔專業的分析報告。\n\n【數據清單】\n股票代碼：{{ $json.stockCode }}\n最新收盤價：{{ $json.latestClose }}\n5日均線 MA5：{{ $json.ma5 }}\n20日均線 MA20：{{ $json.ma20 }}\n今日漲跌幅：{{ $json.changePercent }}\n成交量：{{ $json.volume }}\n近五日價格走勢：{{ $json.priceSummary }}\n\n【分析指令】\n1. 技術面判斷：\n比較收盤價與 MA5、MA20 的位置：\n- 若股價 > MA5 > MA20 → 多頭\n- 否則 → 偏弱或整理\n請明確說明目前趨勢。\n\n2. 量價關係：\n判斷為「帶量上漲」、「量縮整理」或「無量下跌」。\n\n3. 操作策略：\n提供：\n- 支撐位（以 MA20 為主）\n- 壓力位（短線可能高點）\n\n【輸出規範（非常重要）】\n- 使用繁體中文\n- LINE 純文字格式（不要使用 markdown）\n- 不要使用 $, #, *, ``` 等符號(很重要，記得)\n- 使用簡單段落 + emoji（📈📉💡）\n- 每行一個重點，最多 6 行\n- 總長度限制 150 字內\n- 內容需可直接發送 LINE，不需再處理\n\n【輸出格式範例】\n股票：2330  \n趨勢：多頭  \n量價：量縮整理  \n支撐：580  \n壓力：600  \n留意：跌破支撐轉弱"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        960,
+        -144
+      ],
+      "id": "3d710fd0-3312-4ceb-8dcc-38d243de5908",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        960,
+        128
+      ],
+      "id": "a19f0959-3b47-4f98-948e-2c84e2c6dc9c",
+      "name": "Google Gemini Chat",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "b5cblL1ArtR4DHs5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1056,
+        128
+      ],
+      "id": "85d04e7c-1a80-4df6-9bb7-b0f1eb73dcdd",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"U40622547df80f5207a9cd34b7e404ec3\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"各位年輕的會員們,{{ $json.cleanText }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1568,
+        -144
+      ],
+      "id": "ece76427-485e-4efd-bf78-9674f69d8b6f",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "pQaVeuxQFrk9EjWS",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let text = $json.output || \"\";\n\n// 強制轉純文字\ntext = String(text);\n\n// 清洗\ntext = text\n  .replace(/\\$/g, '')\n  .replace(/[#*`]/g, '')\n  .replace(/[\\u0000-\\u001F]/g, '')\n  .replace(/\\n{3,}/g, '\\n\\n') // 避免太多空行\n  .trim();\n\n// 長度限制\ntext = text.slice(0, 4900);\n\nreturn {\n  ...$json,\n  cleanText: text\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        -144
+      ],
+      "id": "76ac0e5e-bc02-4fad-bcaf-57a650f15484",
+      "name": "轉換成line Message API格式"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Line BOT": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "取得30天內所有資訊",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "取得30天內所有資訊": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "轉換成line Message API格式",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "轉換成line Message API格式": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "970b8232-822a-4756-abc6-1a18d4c17b4e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0bc8d9c8a83e2abfe438637a240c2e7c75d63df2210b860e147eb68c2ad6621f"
+  },
+  "id": "TbyCEnP1OV11ARQd",
+  "tags": []
+}

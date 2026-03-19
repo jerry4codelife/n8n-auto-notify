@@ -1,0 +1,492 @@
+{
+  "name": "查詢各地天氣、記帳功能",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -528,
+        656
+      ],
+      "id": "ce59cca7-f9c7-40a7-962b-61d40e47cc42",
+      "name": "When chat message received",
+      "webhookId": "46f961f2-3bc8-450e-80d7-7214735af2a3"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=你是一位個人的行動助理，你的職責是協助使用者處理日常事務。必須使用以下工具來完成任務：\n\n可用工具\n* Open Weather Map: 用於查詢天氣資訊。當使用者需要了解特定地點的天氣狀況時，請調用此工具。\n* Accounting Tool: 用於記錄使用者的收支。當使用者要求記帳時，必須調用此工具。使用者需要提供花費的描述和金額。日期時間會自動記錄為當前日期 (YYYY/MM/DD)。現在的時間是:\nAccounting Tool 使用範例:\n日期:2025/09/10\n描述:梅酒\n金額:1300"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        272,
+        -80
+      ],
+      "id": "82464b32-a5bf-4564-84af-85e1985b9bd3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        144,
+        144
+      ],
+      "id": "cde24426-c1c2-44b3-88af-926e8838170a",
+      "name": "Google Gemini Chat",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "b5cblL1ArtR4DHs5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        144
+      ],
+      "id": "803426eb-37b0-4991-a8f2-cb2157ab718b",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        128,
+        816
+      ],
+      "id": "b0bf77a5-d828-44f2-901d-eecaab2eb1b0",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "spreadsheet",
+        "title": "My n8n sheet",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "Sheet One"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        816
+      ],
+      "id": "5e84b634-29d4-4430-851d-fa890077bfc7",
+      "name": "建立一個新的sheet表",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wvWATflyxqYw8oUq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "每日記帳工具",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1IRcbN9POz0vo7Al4IKUTqQ7ReRs77AUjvOa4ixinzC4",
+          "mode": "list",
+          "cachedResultName": "n8n記帳",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1IRcbN9POz0vo7Al4IKUTqQ7ReRs77AUjvOa4ixinzC4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1IRcbN9POz0vo7Al4IKUTqQ7ReRs77AUjvOa4ixinzC4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "date": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('date', ``, 'string') }}",
+            "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('description', ``, 'string') }}",
+            "amout": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('amout', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "amout",
+              "displayName": "amout",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        144
+      ],
+      "id": "e26f11de-441c-41aa-8fcb-21c30405ad5a",
+      "name": "Accounting Tool",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wvWATflyxqYw8oUq",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "獲取各地的天氣資訊",
+        "cityName": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('City', `City 必須轉成英文`, 'string') }}",
+        "language": "zh_tw"
+      },
+      "type": "n8n-nodes-base.openWeatherMapTool",
+      "typeVersion": 1,
+      "position": [
+        464,
+        144
+      ],
+      "id": "58eb7991-cee8-4466-a4f3-3c678966a0bb",
+      "name": "Open Weather Map",
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "iiFBk0TCtvIiYTxM",
+          "name": "OpenWeatherMap account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        656
+      ],
+      "id": "4cf738e1-c354-4a13-8b2d-1dc1e78b1118",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "73465629-6abf-4405-b07a-0fbda18921b7",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -576,
+        -96
+      ],
+      "id": "056a172a-953d-4225-99a1-27e87e5273ee",
+      "name": "Webhook",
+      "webhookId": "73465629-6abf-4405-b07a-0fbda18921b7"
+    },
+    {
+      "parameters": {
+        "content": "{\n  \n  \n\"sessionId\": \n\"ee30b75b22424f63b258662ecc77f276\",\n  \n  \n\"action\": \n\"sendMessage\",\n  \n  \n\"chatInput\": \n\"嗨嗨\"\n  \n}",
+        "height": 224,
+        "width": 288
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -496
+      ],
+      "id": "d73f1cfe-c3af-4a0f-aaf5-51cef9fc7868",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n\"sessionId\":\"ee30b75b22424f63b258662ecc77f276\",\n\"action\": \"sendMessage\",\n\"chatInput\":{{ $json.body.events[0].message.text }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -272,
+        -96
+      ],
+      "id": "1cb7dcbb-e050-4af1-a2a2-d5105ee3719d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {
+          "includeInputFields": true
+        }
+      },
+      "type": "n8n-nodes-base.dateTime",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -96
+      ],
+      "id": "3c565cc3-b84a-4d88-88be-888fa5e1d3ae",
+      "name": "Date & Time1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"to\": \"U40622547df80f5207a9cd34b7e404ec3\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"你好，我是你的AI助理\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -400,
+        848
+      ],
+      "id": "2cd4683e-2c58-46af-b988-d1e28024c96b",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "pQaVeuxQFrk9EjWS",
+          "name": "Bearer Auth account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"U40622547df80f5207a9cd34b7e404ec3\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"{{ $json.output }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        -80
+      ],
+      "id": "6af15098-bc21-4509-bf2f-caf90af43219",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "pQaVeuxQFrk9EjWS",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/push",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": \"U40622547df80f5207a9cd34b7e404ec3\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"您好！關於6189元晶的股價分析與操作建議如下：\\n\\n📈 **技術面判斷：**\\n股價 47.2，收盤價高於 MA5 (45.91) 及 MA20 (45.03)，呈現「股價 > MA5 > MA20」格局，多頭趨勢持續。\\n\\n🚀 **量價關係：**\\n成交量 914,000，今日漲幅 0.15%，屬「價穩量縮」格局。\\n\\n💡 **操作策略：**\\n支撐位關注 MA20 (約 45.03)。\\n\\n---\\n**免責聲明：** 本分析僅為技術面參考，不構成任何投資建議。投資有風險，請務必獨立判斷。\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        896,
+        816
+      ],
+      "id": "638f8942-1e5e-4eb4-9219-a2c12f879746",
+      "name": "HTTP Request2",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "pQaVeuxQFrk9EjWS",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "建立一個新的sheet表",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accounting Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open Weather Map": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Date & Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "ai_tool": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "3aee4c05-85c8-46ae-ad9c-c144f24e7bb7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0bc8d9c8a83e2abfe438637a240c2e7c75d63df2210b860e147eb68c2ad6621f"
+  },
+  "id": "qLenvvVpqJgaad3S",
+  "tags": []
+}
